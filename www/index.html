@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<base target="_top">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<title>MDMC</title>
+	
+	<link rel="shortcut icon" type="image/x-icon" href="imgs/favicon.ico" />
+
+    <link rel="stylesheet" href="css/leaflet.css" />
+    <script src="js/leaflet.js"></script>
+
+	<style>
+		html, body {
+			height: 100%;
+			margin: 1em;
+		}
+        #map {
+			height: 400px;
+			width: 600px;
+			max-width: 100%;
+			max-height: 100%;
+		}
+	</style>
+	
+</head>
+<body>
+    <div id="map" style="width: 600px; height: 400px;"></div>
+    <div id="interface">
+        <div>
+            <select id="select_date" class="form-select" name="select_date"></select>
+            <button id="select_pdate" type="input" name="date_prev">Prev</button>
+            <button id="select_ndate" type="input" name="date_next">Next</button>
+        </div>
+    </div>
+    <div>
+        <p>To do:</p>
+        <ul>
+            <li>look at Leaflet inheritance</li>
+            <li>look at Leaflet plugins</li>
+        </ul>
+</body>
+<script src="js/mdmc.js"></script>
+</html>
+
