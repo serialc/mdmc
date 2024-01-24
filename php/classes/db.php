@@ -67,11 +67,26 @@ class DataBaseConnection
         return $dates;
     }
 
-    public function getDate($thedate)
+    public function getDateBusDir($thedate, $busnum, $busdir)
     {
-        $sql = "SELECT * FROM " . TABLE_MOVE_DATA . " WHERE DATE(dt) = ?";
+        $sql = "SELECT * FROM " . TABLE_MOVE_DATA . " WHERE DATE(dt) = ? " .
+            " AND busnum " .   (is_null($busnum) ? "IS NULL" : "= ?") .
+            " AND tripcode " . (is_null($busdir) ? "IS NULL" : "= ?");
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([$thedate]);
+
+        if (is_null($busnum)) {
+            if (is_null($busdir)) {
+                $stmt->execute([$thedate]);
+            } else {
+                $stmt->execute([$thedate, $busdir]);
+            }
+        } else {
+            if (is_null($busdir)) {
+                $stmt->execute([$thedate, $busnum]);
+            } else {
+                $stmt->execute([$thedate, $busnum, $busdir]);
+            }
+        }
 
         $points = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -80,25 +95,36 @@ class DataBaseConnection
         return $points;
     }
 
-    public function userExists($uname)
+    public function getDateGroups($thedate)
     {
-        $sql = "SELECT COUNT(*) as number FROM " . TABLE_USERS .
-           " WHERE username=?";
+        $sql = "SELECT busnum, tripcode, segment, COUNT(*) as count FROM " . TABLE_MOVE_DATA . " WHERE DATE(dt) = ? GROUP BY busnum, tripcode, segment";
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([$uname]);
-        if ($stmt->fetchAll(PDO::FETCH_ASSOC)[0]['number'] == 1) {
-            return true;
-        } else {
-            return false;
+        $stmt->execute([$thedate]);
+
+        $groups = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            array_push($groups, $row);
         }
+        return $groups;
     }
 
-    public function updateUser($uname, $institute, $email, $status, $pwd, $uid, $ntf_nr, $ntf_no, $ntf_nq, $ntf_pq, $ntf_om)
+    public function setAttribute($field_name, $field_value, $dt)
     {
-        $sql = "UPDATE " . TABLE_USERS .
-            " SET username=?, institute=?, email=?, status=?, password=?, ntf_newreg=?, ntf_newoer=?, ntf_newqry=?, ntf_perqry=?, ntf_oermod=? WHERE uid=?";
+        $sql = "UPDATE " . TABLE_MOVE_DATA . " SET " . $field_name . "=? WHERE ";
+
+        $lastindex = count($dt) - 1;
+
+        for ($i = 0; $i < count($dt); $i += 1) {
+            if ($i === $lastindex) {
+                $sql .= "dt = ?";
+            } else {
+                $sql .= "dt = ? OR ";
+            }
+        }
         $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([$uname, $institute, $email, $status, $pwd, $ntf_nr, $ntf_no, $ntf_nq, $ntf_pq, $ntf_om, $uid]);
+        // add the array field as the first '?' value
+        array_unshift($dt, $field_value);
+        return $stmt->execute($dt);
     }
 
     public function deleteUserCode($code)

@@ -18,9 +18,33 @@ switch ($pdata['req'])
 case "dates":
     echo buildResponse( $db->getDates() );
     break;
-case "date":
-    echo buildResponse( $db->getDate($pdata['value']) );
+
+case "data":
+    echo buildResponse( $db->getDateBusDir($pdata['value'], $pdata['bus_num'], $pdata['bus_dir']) );
     break;
+
+case "date_groups":
+    echo buildResponse( $db->getDateGroups($pdata['value']) );
+    break;
+
+case "write_bus_number":
+    if ($db->setAttribute('busnum', $pdata['bus'], $pdata['value'])) {
+        echo buildResponse( $db->getDateGroups($pdata['date']) );
+    } else {
+        echo buildResponse("Unable to update bus number", 500);
+    }
+    break;
+
+case "write_bus_direction":
+    if ($db->setAttribute('tripcode', $pdata['direction'], $pdata['value'])) {
+        echo buildResponse( $db->getDateGroups($pdata['date']) );
+    } else {
+        echo buildResponse("Unable to update bus number", 500);
+    }
+    break;
+
+default:
+    echo buildResponse( "Didn't find request type", 500);
 }
 
 

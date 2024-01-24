@@ -1,47 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<base target="_top">
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	
-	<title>MDMC</title>
-	
-	<link rel="shortcut icon" type="image/x-icon" href="imgs/favicon.ico" />
+    <head>
+        <base target="_top">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="stylesheet" href="css/leaflet.css" />
-    <script src="js/leaflet.js"></script>
+        <title>MDMC</title>
 
-	<style>
-		html, body {
-			height: 100%;
-			margin: 1em;
-		}
-        #map {
-			height: 400px;
-			width: 600px;
-			max-width: 100%;
-			max-height: 100%;
-		}
-	</style>
-	
-</head>
-<body>
-    <div id="map" style="width: 600px; height: 400px;"></div>
-    <div id="interface">
-        <div>
-            <select id="select_date" class="form-select" name="select_date"></select>
-            <button id="select_pdate" type="input" name="date_prev">Prev</button>
-            <button id="select_ndate" type="input" name="date_next">Next</button>
+        <link rel="shortcut icon" type="image/x-icon" href="imgs/favicon.ico" />
+
+        <link rel="stylesheet" href="/css/bootstrap.min.css" >
+        <link rel="stylesheet" href="css/leaflet.css" >
+        <link rel="stylesheet" href="css/mdmc.css" >
+
+        <script src="js/leaflet.js"></script>
+        <script src="js/d3.v7.min.js"></script>
+
+    </head>
+    <body>
+        <div class="container">
+            <div class="row">
+
+                <div class="col-md-8">
+                    <div id="map"></div>
+                </div>
+
+                <div class="col-md-4" id="controls">
+                    <h4>Data retrieval</h4>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Date</span>
+                                </div>
+                                <select id="select_date" class="form-select" name="select_date"></select>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-primary w-100" id="select_pdate">Prev</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-primary w-100" id="select_ndate">Next</button>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <div id="filter_bus_number" class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" for="select_date">Bus</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 mt-2">
+                            <div id="filter_bus_direction" class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" for="select_date">Direction</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="mt-3">Edit selected data</h4>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Bus number</span>
+                                </div>
+                                <select id="select_bus_number" class="form-select">
+                                    <option value="306">306 Belval - Trier</option>
+                                    <option value="303">303 LuxExpo - Trier</option>
+                                </select>
+                                <button class="btn btn-warning" id="submit_bus_number">Update</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Bus direction</span>
+                                </div>
+                                <select id="select_bus_direction" class="form-select">
+                                    <option value="1">Luxembourg</option>
+                                    <option value="2">Germany</option>
+                                </select>
+                                <button class="btn btn-warning" id="submit_bus_direction">Update</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <h4 class="mt-3">Selected data</h4>
+                        <div class="col-12">
+                            Describe currently selected data
+                        </div>
+                    </div>
+
+                    <div class="alert alert-secondary mt-2" id="status">none</div>
+
+                </div>
+
+                <div id="graphbox" class="col-md-6 mt-3"></div>
+
+                <div class="col-md-6 mt-3">
+                    <h4>To do:</h4>
+                    <ul>
+                        <li>Classify selection as bus number</li>
+                        <li>Classify selection as trip code</li>
+                        <li>Classify selection as segment</li>
+                    </ul>
+                </div>
+            </div>
+
         </div>
-    </div>
-    <div>
-        <p>To do:</p>
-        <ul>
-            <li>look at Leaflet inheritance</li>
-            <li>look at Leaflet plugins</li>
-        </ul>
-</body>
-<script src="js/mdmc.js"></script>
+    </body>
+    <script src="js/mdmc.js"></script>
 </html>
 

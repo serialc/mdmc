@@ -1,10 +1,14 @@
 MD = {
-    data: {},
-    selection: []
-    };
+    data: {
+        circles: [],
+        selection: []
+    },
+};
 
 MD.dbRequest = function(data, callbackFunc)
 {
+    MD.setStatus('Loading data ' + data.req);
+
     fetch('/api.php', {
         method: 'POST',
         timeout: 15,
@@ -13,13 +17,23 @@ MD.dbRequest = function(data, callbackFunc)
         body: JSON.stringify(data)
     })
     .then((response) => response.json())
-    .then((data) => { callbackFunc(data); })
-    .catch(() => { console.log("Failed request"); });
+    .then((data) => {
+        MD.setStatus('');
+        callbackFunc(data);
+    })
+    .catch((err) => {
+        throw err;
+        console.log(data);
+        MD.setStatus('Failed loading ' + data.req);
+        console.log("Failed request " + data.req);
+    });
 };
 
 MD.updateDatesList = function(list)
 {
     let sel_date = document.getElementById('select_date');
+
+    MD.data.dates_list = list;
 
     // insert each date into select element
     for (let i = 0; i < list.length; i+=1) {
@@ -28,10 +42,110 @@ MD.updateDatesList = function(list)
         opt.innerHTML = list[i];
         sel_date.appendChild(opt);
     }
+
+    // select first item from dates
+    if (localStorage.getItem('last_date') === null) {
+        MD.focus_date = list[0];
+    } else {
+        MD.focus_date = localStorage.getItem('last_date');
+    }
+
+    // load the selected date
+    let selectDate = document.getElementById('select_date');
+    selectDate.value = MD.focus_date;
+
+    // fire a change event on the selection element
+    selectDate.dispatchEvent(new Event('change'));
 };
 
-MD.processDate = function(points)
+MD.retrieveDateGroups = function(groups)
 {
+    let bnum_el = document.getElementById('filter_bus_number');
+    let bdir_el = document.getElementById('filter_bus_direction');
+
+    // build an array of bus numbers, with directions in sub array
+    let day_data = {};
+    for (let i = 0; i < groups.length; i += 1) {
+        let row = groups[i];
+
+        if (!day_data.hasOwnProperty(row.busnum)) {
+            day_data[row.busnum] = [];
+        }
+
+        day_data[row.busnum].push({"dir": row.tripcode === null ? "none" : row.tripcode, "count": row.count});
+    }
+
+    // now display each bus number
+    for (bus in day_data) {
+        let busnum = bus;
+        let btn = document.createElement("button");
+        btn.classList.add('btn');
+        btn.classList.add('btn-info');
+        btn.classList.add('bus_number_buttons');
+        btn.appendChild( document.createTextNode(bus) );
+        btn.addEventListener('click', function(e) {
+
+            MD.deleteBusOrDirectionButtons('busdir');
+
+            let dirs = day_data[busnum];
+            console.log(dirs);
+            // display the directions for this bus
+            for (d in dirs) {
+                let direction = day_data[busnum][d].dir;
+                let dbtn = document.createElement("button");
+                dbtn.title = dirs[d].count;
+                dbtn.classList.add('btn');
+                dbtn.classList.add('btn-info');
+                dbtn.classList.add('direction_buttons');
+                dbtn.addEventListener('click', function(e) {
+                    console.log(busnum, direction)
+                    // load the data for this date, bus, trip direction
+                    MD.dbRequest({
+                        'req': 'data',
+                        'value': MD.focus_date,
+                        'bus_num': busnum === "null" ? null : busnum,
+                        'bus_dir': direction === "none" ? null : dirs[d].dir
+                    }, MD.displayData);
+
+                    MD.deleteBusOrDirectionButtons('both');
+                });
+                dbtn.appendChild( document.createTextNode(dirs[d].dir) );
+                bdir_el.append(dbtn);
+            }
+        });
+        bnum_el.append(btn);
+    }
+};
+
+MD.deleteBusOrDirectionButtons = function(delete_button_class)
+{
+    if (delete_button_class === 'busnum' || delete_button_class === 'both') {
+        // delete all the bus number buttons 
+        let del_el = document.getElementsByClassName('bus_number_buttons');
+        // del_el is a live list - delete smartly
+        while (del_el.length > 0) {
+            del_el[0].remove();
+        }
+    }
+
+    if (delete_button_class === 'busdir' || delete_button_class === 'both') {
+        // delete all direction buttons in case some have been generated
+        let del_el = document.getElementsByClassName('direction_buttons');
+        // del_el is a live list - delete smartly
+        while (del_el.length > 0) {
+            del_el[0].remove();
+        }
+
+    }
+
+};
+
+MD.displayData = function(points)
+{
+    // remove all pre-existing circles on the map and clear points
+    MD.data.circles.map((c) => c.remove())
+    MD.data.points = [];
+
     // save the points
     MD.data.points = points;
     let circles = [];
@@ -40,20 +154,211 @@ MD.processDate = function(points)
         p = points[i];
         circles.push(L.circle([p['lat'], p['lng']], {
             color: 'black',
-            fillColor: 'red',
+            fillColor: 'blue',
             fillOpacity: 0.5,
             radius: 1 + parseInt(p['spdms'], 10)
         }).addTo(MD.map));
     }
 
+    // make svg graph
+    MD.generateTimeGraph(points);
+
+    // save to global object
     MD.data.circles = circles;
     return true;
 };
 
-MD.initSimpleSelect = function()
+MD.generateTimeGraph = function(pdata)
 {
+    let el = document.getElementById('graphbox');
+    const fullwidth = el.offsetWidth;
+    const fullheight = el.offsetHeight;
+    const margin = {top: 10, right: 10, bottom: 50, left: 40};
+    const width  = fullwidth - margin.left - margin.right;
+    const height = fullheight - margin.top  - margin.bottom;
 
+    // clean the data
+    let data = d3.map(pdata,
+        function (d) {
+            return { 
+                dt : d3.timeParse("%Y-%m-%d %H:%M:%S")(d.dt),
+                time: d.dt.split(' ')[1],
+                spdms: parseFloat(d.spdms, 10),
+                satnum: parseInt(d.satnum, 10)
+            };
+        }
+    );
 
+    // set domain(extent of values) and range(extent on canvas)
+    const x = d3.scaleTime()
+        .domain(d3.extent(data, (d) => d.dt))
+        .range([0, width]);
+    const y = d3.scaleLinear()
+        .domain(d3.extent(data, (d) => d.spdms).reverse())
+        .range([0, height]);
+
+    // delete SVG elem if it already exists
+    if ( document.getElementById("svggraph") ) { svggraph.remove(); }
+
+    // create the SVG elem and layout
+    let svg = d3.select(el)
+        .append('svg')
+        .attr('id', 'svggraph')
+        .attr("viewBox", "0 0 " + el.offsetWidth + " " + el.offsetHeight)
+        .attr("width", "100%")
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+        .attr('id', 'graphbox');
+    // All of the following elements appended to 'svg' will be appended to the graphbox
+
+    // add the data to the SVG
+    svg.append("g")
+        .selectAll("dot")
+        .data(data)
+        .join("circle")
+        .attr("cx", (d) => x(d.dt))
+        .attr("cy", (d) => y(d.spdms))
+        .attr('opacity', 0.5)
+        .style("fill", "steelblue")
+        .attr("r", (d) => d.satnum/5);
+
+    // add the x axis line
+    let xAxis = d3.axisBottom(x)
+        .tickFormat(d3.timeFormat("%H:%M:%S"));
+    svg.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+    // x-axis label
+    svg.append("text")
+        .attr("x", fullwidth/2)
+        .attr("y", fullheight - margin.bottom/3)
+        .attr("text-anchor", "middle") // [start, middle, end]
+        .text("Time of day");
+
+    // add the y axis line
+    svg.append("g")
+        .call(d3.axisLeft(y));
+
+    // y-axis label
+    svg.append("text")
+        .attr("transform", "translate(" + -25 + " " + height + ") " + "rotate(-90)")
+        .attr("text-anchor", "start") // [start, middle, end]
+        .text("Speed (m/s)");
+
+    // create drag box
+    svg.append("rect")
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', 0)
+        .attr('height', height)
+        .attr('opacity', 0.3)
+        .style("fill", "pink")
+        .attr('id', 'selbox');
+
+    let selbox = svg.select('#selbox');
+
+    // allow interaction
+    let startx = false;
+    svg.append("rect")
+        .attr('x', -margin.left)
+        .attr('y', -margin.top)
+        .attr('width', fullwidth)
+        .attr('height', fullheight)
+        .attr('opacity', 0.01)
+        .on("mousemove", function(d) {
+
+            // only show selection if dragging
+            if (startx !== false) {
+
+                // rects can't have negative width
+                let curx = d3.pointer(d)[0];
+                if ( curx - startx < 0 ) {
+                    selbox.attr('x', curx);
+                    selbox.attr('width', startx - curx);
+                } else {
+                    selbox.attr('x', startx);
+                    selbox.attr('width', curx - startx);
+                }
+
+                // force selection end
+                if ( curx > width || curx < 0) {
+                    if ( curx > startx ) {
+                        MD.graphSelect(x.invert(startx), x.invert(curx));
+                    } else {
+                        MD.graphSelect(x.invert(curx), x.invert(startx));
+                    }
+                    startx = false;
+                }
+            }
+        })
+        .on("mousedown", function(d) {
+            startx = d3.pointer(d)[0];
+            selbox.attr('x', startx);
+            selbox.attr('width', 0);
+        })
+        .on("mouseup", function(d) {
+            let curx = d3.pointer(d)[0];
+            if ( curx > startx ) {
+                MD.graphSelect(x.invert(startx), x.invert(curx));
+            } else {
+                MD.graphSelect(x.invert(curx), x.invert(startx));
+            }
+
+            // end drag detection
+            startx = false;
+        });
+};
+
+MD.graphSelect = function(sdt, edt)
+{
+    // reset the selection
+    MD.data.selection = [];
+
+    // clean the data
+    let data = d3.map(MD.data.points,
+        function (d) {
+            return { 
+                dt : d3.timeParse("%Y-%m-%d %H:%M:%S")(d.dt)
+            };
+        }
+    );
+
+    // get the indices of the selected items
+    let dirty_data = data.map( (v, i) => {return (v.dt >= sdt && v.dt <= edt) ? i : false});
+
+    // then filter out all undefined values
+    MD.data.selection = dirty_data.filter( (v) => v !== false );
+
+    // update map display
+    MD.resetMapSelection();
+};
+
+MD.resetMapSelection = function()
+{
+    // go through each point
+    for (let i = 0; i < MD.data.points.length; i += 1) {
+
+        // change circle styling
+        if (MD.data.selection.includes(i) === true) {
+            MD.data.circles[i].setStyle({'fillColor': 'red', 'color': 'white'});
+        } else {
+            MD.data.circles[i].setStyle({'fillColor': 'blue', 'color': 'black'});
+        }
+    }
+};
+
+MD.setStatus = function(status)
+{
+    let s = document.getElementById('status');
+    s.innerHTML = status;
+
+    // hide the status if message is empty
+    if (status === '') {
+        s.style.display = 'none';
+    } else {
+        s.style.display = '';
+    }
 };
 
 MD.createMapFunctionality = function()
@@ -107,20 +412,37 @@ MD.createMapFunctionality = function()
                 return;
             }
 
-            console.log(bounds);
+            // reset the data selection
+            MD.data.selection = [];
 
-
+            // determine which points fall within selection bounds
+            // and update the data model
+            // go through each point
             for (let i = 0; i < MD.data.points.length; i += 1) {
-                // Note L.LatLng() and L.latLng() exist
+
+                // Note both L.LatLng() and L.latLng() exist
                 let ll = L.latLng(MD.data.points[i].lat, MD.data.points[i].lng);
+
                 if (bounds.contains(ll) === true) {
-                    MD.selection.push(i);
+                    // add to data model list
+                    MD.data.selection.push(i);
                 }
             }
+
+            // goes through list of points and updates map view/symbology
+            MD.resetMapSelection();
+
+            // hide graph selection box (id=selbox)
+            document.getElementById('selbox').display = none;
         }
     });
 
     L.Map.addInitHook('addHandler', 'rectselect', L.RectSelect);
+};
+
+MD.retrieveDtSelection = function()
+{
+    return MD.data.selection.map( i => MD.data.points[i].dt);
 };
 
 // Executes on load - keep at the end
@@ -137,16 +459,65 @@ MD.init = function()
 		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 	}).addTo(MD.map);
 
-    // setup the selection tool
-    MD.initSimpleSelect();
-
     // get list of dates
     MD.dbRequest({'req': 'dates'}, MD.updateDatesList);
 
-    // add event listener
+    // add event listeners
     let sel_date = document.getElementById('select_date');
+
     sel_date.addEventListener("change", function() {
-        MD.dbRequest({'req': 'date', 'value': sel_date.value}, MD.processDate);
+        // save in global and localStorage the selected date
+        MD.focus_date = sel_date.value;
+        localStorage.setItem('last_date', MD.focus_date);
+
+        // get the data for the selected date
+        MD.dbRequest({'req': 'date_groups', 'value': sel_date.value}, MD.retrieveDateGroups);
+    });
+
+    let ndate = document.getElementById('select_ndate');
+    ndate.addEventListener('click', function() {
+        let cdi = MD.data.dates_list.indexOf(sel_date.value);
+
+        // make sure we're not at the last date
+        if (cdi < MD.data.dates_list.length - 1) {
+            // set date of html select as well as data model
+            MD.focus_date = sel_date.value = MD.data.dates_list[cdi+1];
+            sel_date.dispatchEvent(new Event('change'));
+        }
+    });
+
+    let pdate = document.getElementById('select_pdate');
+    pdate.addEventListener('click', function() {
+        let cdi = MD.data.dates_list.indexOf(sel_date.value);
+
+        // make sure we're not at the first date
+        if (cdi > 0) {
+            // set date of html select as well as data model
+            MD.focus_date = sel_date.value = MD.data.dates_list[cdi-1];
+            sel_date.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // change attributes of selected points
+
+    let wbn = document.getElementById('submit_bus_number');
+    wbn.addEventListener('click', function() {
+        if ( MD.data.selection.length > 0 ) {
+            let bus_num = document.getElementById('select_bus_number').value;
+            MD.dbRequest({'req': 'write_bus_number', 'date': MD.focus_date, 'value': MD.retrieveDtSelection(), 'bus': bus_num}, MD.retrieveDateGroups);
+        } else {
+            console.log("No selection");
+        }
+    });
+
+    let wbd = document.getElementById('submit_bus_direction');
+    wbd.addEventListener('click', function() {
+        if ( MD.data.selection.length > 0 ) {
+            let bus_dir = document.getElementById('select_bus_direction').value;
+            MD.dbRequest({'req': 'write_bus_direction', 'date': MD.focus_date, 'value': MD.retrieveDtSelection(), 'direction': bus_dir}, MD.retrieveDateGroups);
+        } else {
+            console.log("No selection");
+        }
     });
 
 }();
