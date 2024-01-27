@@ -43,6 +43,15 @@ case "write_bus_direction":
     }
     break;
 
+case "delete_points":
+    // set visible to 0/FALSE
+    if ($db->setAttribute('visible', 0, $pdata['dt_list'])) {
+        echo buildResponse( $db->getDateGroups($pdata['date']) );
+    } else {
+        echo buildResponse("Unable to update bus number", 500);
+    }
+    break;
+
 default:
     echo buildResponse( "Didn't find request type", 500);
 }

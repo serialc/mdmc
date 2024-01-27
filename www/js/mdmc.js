@@ -1,8 +1,16 @@
 MD = {
     data: {
+        points: [],
+        llpoints: [],
         circles: [],
         selection: []
     },
+    codes: {
+        country: {
+            1: "Luxembourg",
+            2: "Germany"
+        }
+    }
 };
 
 MD.dbRequest = function(data, callbackFunc)
@@ -60,8 +68,8 @@ MD.updateDatesList = function(list)
 
 MD.retrieveDateGroups = function(groups)
 {
-    let bnum_el = document.getElementById('filter_bus_number');
-    let bdir_el = document.getElementById('filter_bus_direction');
+    // delete SVG elem if it already exists
+    if ( document.getElementById("svggraph") ) { svggraph.remove(); }
 
     // build an array of bus numbers, with directions in sub array
     let day_data = {};
@@ -75,45 +83,87 @@ MD.retrieveDateGroups = function(groups)
         day_data[row.busnum].push({"dir": row.tripcode === null ? "none" : row.tripcode, "count": row.count});
     }
 
+    // save the day data 
+    MD.data.day_groups = day_data;
+
+    MD.displayDateBusDirections(day_data, true);
+
+    // remove all pre-existing circles on the map and clear points data
+    MD.clearMapAndData();
+};
+
+MD.displayDateBusDirections = function(day_data, auto_load)
+{
+    MD.deleteBusOrDirectionButtons('both');
+
+    // get the elements holding the bus numbers and directions
+    let bnum_el = document.getElementById('filter_bus_number');
+    let bdir_el = document.getElementById('filter_bus_direction');
+
     // now display each bus number
     for (bus in day_data) {
         let busnum = bus;
         let btn = document.createElement("button");
         btn.classList.add('btn');
-        btn.classList.add('btn-info');
+        if (MD.bus_number === busnum) {
+            btn.classList.add('btn-info');
+        } else {
+            btn.classList.add('btn-secondary');
+        }
         btn.classList.add('bus_number_buttons');
         btn.appendChild( document.createTextNode(bus) );
         btn.addEventListener('click', function(e) {
 
+            MD.bus_number = busnum;
             MD.deleteBusOrDirectionButtons('busdir');
 
             let dirs = day_data[busnum];
-            console.log(dirs);
             // display the directions for this bus
             for (d in dirs) {
                 let direction = day_data[busnum][d].dir;
                 let dbtn = document.createElement("button");
                 dbtn.title = dirs[d].count;
                 dbtn.classList.add('btn');
-                dbtn.classList.add('btn-info');
+                if (MD.bus_direction === direction) {
+                    dbtn.classList.add('btn-info');
+                } else {
+                    dbtn.classList.add('btn-secondary');
+                }
                 dbtn.classList.add('direction_buttons');
                 dbtn.addEventListener('click', function(e) {
-                    console.log(busnum, direction)
+                    MD.bus_direction = direction;
+
                     // load the data for this date, bus, trip direction
                     MD.dbRequest({
                         'req': 'data',
                         'value': MD.focus_date,
                         'bus_num': busnum === "null" ? null : busnum,
-                        'bus_dir': direction === "none" ? null : dirs[d].dir
+                        'bus_dir': direction === "none" ? null : direction
                     }, MD.displayData);
-
-                    MD.deleteBusOrDirectionButtons('both');
                 });
-                dbtn.appendChild( document.createTextNode(dirs[d].dir) );
+                dbtn.appendChild( document.createTextNode(MD.codes.country[direction]) );
                 bdir_el.append(dbtn);
+
+                // there is only one direction, select it
+                if (auto_load) {
+                    if (dirs.length === 1) {
+                        dbtn.dispatchEvent(new Event('click'));
+                    }  else if (MD.bus_direction === direction) {
+                        dbtn.dispatchEvent(new Event('click'));
+                    }
+                }
             }
         });
+
         bnum_el.append(btn);
+
+        // there is only one bus, select it
+        if (Object.keys(day_data).length === 1) {
+            btn.dispatchEvent(new Event('click'));
+        } else if (MD.bus_nmber === busnum) {
+            // if this bus was already selected
+            btn.dispatchEvent(new Event('click'));
+        }
     }
 };
 
@@ -140,16 +190,28 @@ MD.deleteBusOrDirectionButtons = function(delete_button_class)
 
 };
 
+MD.clearMapAndData = function()
+{
+    // remove all pre-existing circles from the map
+    MD.data.circles.map((c) => c.remove());
+    MD.data.circles = [];
+
+    // clear points data
+    MD.data.points = [];
+};
+
 MD.displayData = function(points)
 {
-    // remove all pre-existing circles on the map and clear points
-    MD.data.circles.map((c) => c.remove())
-    MD.data.points = [];
+    // remove all pre-existing circles on the map and clear points data
+    MD.clearMapAndData();
 
     // save the points
     MD.data.points = points;
-    let circles = [];
 
+    // get lat/lng and save as separate
+    MD.data.llpoints = points.map(function(o) { return {"lat": parseFloat(o.lat), "lng": parseFloat(o.lng)}});
+
+    let circles = [];
     for (let i = 0; i < points.length; i+=1) {
         p = points[i];
         circles.push(L.circle([p['lat'], p['lng']], {
@@ -163,9 +225,23 @@ MD.displayData = function(points)
     // make svg graph
     MD.generateTimeGraph(points);
 
+    // update the bus numbers and directions buttons
+    MD.displayDateBusDirections(MD.data.day_groups, false);
+
+    // display information about the current selection
+    MD.displayDataDescription();
+
     // save to global object
     MD.data.circles = circles;
     return true;
+};
+
+MD.displayDataDescription = function()
+{
+    let dd = document.getElementById("data_description");
+    dd.innerHTML = "Bus " + MD.bus_number + ' - ' + (MD.bus_direction === 1 ? 'Towards Luxembourg' : 'Leaving Luxembourg') + '<br>' +
+        MD.data.points.length + ' data points<br>' +
+        MD.data.selection.length + ' points selected';
 };
 
 MD.generateTimeGraph = function(pdata)
@@ -296,8 +372,12 @@ MD.generateTimeGraph = function(pdata)
             startx = d3.pointer(d)[0];
             selbox.attr('x', startx);
             selbox.attr('width', 0);
+            selbox.style('display', '');
         })
         .on("mouseup", function(d) {
+            // only perform select if we started select
+            if (startx === false) { return; };
+
             let curx = d3.pointer(d)[0];
             if ( curx > startx ) {
                 MD.graphSelect(x.invert(startx), x.invert(curx));
@@ -308,6 +388,23 @@ MD.generateTimeGraph = function(pdata)
             // end drag detection
             startx = false;
         });
+};
+
+MD.select = function(instruction)
+{
+    // select all indices
+    if (instruction === 'all') {
+        MD.data.selection = MD.data.points.map( (x,i) => i);
+    }
+
+    // clear selection
+    if (instruction === 'none') {
+        MD.data.selection = [];
+    }
+
+    // update map
+    MD.resetMapSelection();
+
 };
 
 MD.graphSelect = function(sdt, edt)
@@ -334,6 +431,7 @@ MD.graphSelect = function(sdt, edt)
     MD.resetMapSelection();
 };
 
+// show points selection
 MD.resetMapSelection = function()
 {
     // go through each point
@@ -346,6 +444,9 @@ MD.resetMapSelection = function()
             MD.data.circles[i].setStyle({'fillColor': 'blue', 'color': 'black'});
         }
     }
+
+    // display information about the current selection
+    MD.displayDataDescription();
 };
 
 MD.setStatus = function(status)
@@ -433,7 +534,7 @@ MD.createMapFunctionality = function()
             MD.resetMapSelection();
 
             // hide graph selection box (id=selbox)
-            document.getElementById('selbox').display = none;
+            document.getElementById('selbox').style.display = 'none';
         }
     });
 
@@ -520,4 +621,71 @@ MD.init = function()
         }
     });
 
+    document.getElementById('select_all_btn').addEventListener('click', function() {
+        MD.select('all');
+    });
+    document.getElementById('select_none_btn').addEventListener('click', function() {
+        MD.select('none');
+    });
+    document.getElementById('delete_selection_btn').addEventListener('click', function() {
+        // just delete it by making it not visible
+        if ( MD.data.selection.length > 0 ) {
+            MD.dbRequest({
+                'req': 'delete_points',
+                'dt_list': MD.retrieveDtSelection(),
+                'date': MD.focus_date
+            }, MD.retrieveDateGroups);
+        }
+    });
+    document.getElementById('vbtn_belval').addEventListener('click', function() {
+        MD.map.setView({ "lat": 49.5039, "lng": 5.94732}, 19);
+    });
+    document.getElementById('vbtn_trier').addEventListener('click', function() {
+        MD.map.setView({ "lat": 49.76154, "lng": 6.63798}, 19);
+    });
+    document.getElementById('vbtn_data').addEventListener('click', function() {
+        
+        // get the points
+        const p = MD.data.llpoints;
+
+        if ( p.length === 0 ) { return; }
+
+        let north = p[0].lat;
+        let east = p[0].lng;
+        let south = p[0].lat; 
+        let west = p[0].lng;
+
+        // find the max for each
+        for (let i = 1; i < p.length; i += 1) {
+            if (p[i].lat > north) { north = p[i].lat };
+            if (p[i].lng > east ) { east = p[i].lng };
+            if (p[i].lat < south) { south = p[i].lat };
+            if (p[i].lng < west ) { west = p[i].lng };
+        }
+
+        // bounds are based on south-west and north-east corners 
+        MD.map.fitBounds([[south, west],[north, east]]);
+    });
+    document.getElementById('vbtn_selection').addEventListener('click', function() {
+        // get the points based on selection
+        const p = MD.data.selection.map(s => MD.data.llpoints[s]);
+
+        if ( p.length === 0 ) { return; }
+
+        let north = p[0].lat;
+        let east = p[0].lng;
+        let south = p[0].lat; 
+        let west = p[0].lng;
+
+        // find the max for each
+        for (let i = 1; i < p.length; i += 1) {
+            if (p[i].lat > north) { north = p[i].lat };
+            if (p[i].lng > east ) { east = p[i].lng };
+            if (p[i].lat < south) { south = p[i].lat };
+            if (p[i].lng < west ) { west = p[i].lng };
+        }
+
+        // bounds are based on south-west and north-east corners 
+        MD.map.fitBounds([[south, west],[north, east]]);
+    });
 }();

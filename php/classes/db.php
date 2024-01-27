@@ -70,6 +70,7 @@ class DataBaseConnection
     public function getDateBusDir($thedate, $busnum, $busdir)
     {
         $sql = "SELECT * FROM " . TABLE_MOVE_DATA . " WHERE DATE(dt) = ? " .
+            " AND visible IS TRUE " .
             " AND busnum " .   (is_null($busnum) ? "IS NULL" : "= ?") .
             " AND tripcode " . (is_null($busdir) ? "IS NULL" : "= ?");
         $stmt = $this->conn->prepare($sql);
@@ -97,7 +98,8 @@ class DataBaseConnection
 
     public function getDateGroups($thedate)
     {
-        $sql = "SELECT busnum, tripcode, segment, COUNT(*) as count FROM " . TABLE_MOVE_DATA . " WHERE DATE(dt) = ? GROUP BY busnum, tripcode, segment";
+        $sql = "SELECT busnum, tripcode, segment, COUNT(*) as count FROM " . TABLE_MOVE_DATA .
+            " WHERE DATE(dt) = ? AND visible IS TRUE GROUP BY busnum, tripcode, segment";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$thedate]);
 
@@ -121,19 +123,13 @@ class DataBaseConnection
                 $sql .= "dt = ? OR ";
             }
         }
+
         $stmt = $this->conn->prepare($sql);
         // add the array field as the first '?' value
         array_unshift($dt, $field_value);
+
         return $stmt->execute($dt);
     }
-
-    public function deleteUserCode($code)
-    {
-        $sql = "DELETE FROM " . TABLE_CODES . " WHERE code=?";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute([$code]);
-    }
-
 }
 
 // EOF

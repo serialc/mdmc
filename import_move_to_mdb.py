@@ -1,8 +1,9 @@
 import mariadb
 import sys
-from datetime import datetime
+import datetime
+import pytz
 
-data = "../arduino/data/commute.csv"
+data = "/home/cyrille/Dropbox/Research/lux_free_transport_analysis/arduino/data/commute.csv"
 
 mdbu = "cyrille"
 mdbp = ""
@@ -29,6 +30,9 @@ comminterval = 10000
 commitcount = 0
 tenthousands = 0
 
+tzUTC = pytz.timezone("UTC")
+tzCET = pytz.timezone("CET")
+
 with open(data, 'r') as fh:
     header = True
 
@@ -41,13 +45,18 @@ with open(data, 'r') as fh:
         p = l.strip().split(',')
         #print(commitcount, p)
         try:
-            dt = datetime.strptime(p[0] + ' ' + p[1], "%y/%m/%d %H:%M:%S")
+            # define the tz as UTC
+            dt = datetime.datetime.strptime(p[0] + ' ' + p[1], "%y/%m/%d %H:%M:%S")
+            # convert to local timezone
+            dtutc = tzUTC.localize(dt)
+            dtcet = dtutc.astimezone(tzCET)
+
         except ValueError:
             print("Skipping row with invalid date-time " + p[0] + ' ' + p[1])
             continue
 
         query = "INSERT IGNORE INTO busmov (dt, satnum, altitude, spdms, lat, lng, batv) VALUES (?, ?, ?, ?, ?, ?, ?)"
-        value_tuple = (dt.strftime("%Y-%m-%d %H:%M:%S"), p[2], p[3], p[4], p[5], p[6], p[7])
+        value_tuple = ( dtcet.strftime("%Y-%m-%d %H:%M:%S"), p[2], p[3], p[4], p[5], p[6], p[7])
         c.execute(query, value_tuple)
         commitcount += 1
 

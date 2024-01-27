@@ -11,5 +11,7 @@ CREATE TABLE busmov (
     busnum DEC(3,0) UNSIGNED DEFAULT NULL,
     tripcode TINYINT UNSIGNED DEFAULT NULL,
     segment TINYINT UNSIGNED DEFAULT NULL,
+    visible bool DEFAULT true,
     PRIMARY KEY (dt)
 );
+
