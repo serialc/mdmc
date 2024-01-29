@@ -15,6 +15,9 @@ MD = {
 
 MD.dbRequest = function(data, callbackFunc)
 {
+    // clear selection
+    MD.select('none');
+
     MD.setStatus('Loading data ' + data.req);
 
     fetch('/api.php', {
@@ -218,7 +221,7 @@ MD.displayData = function(points)
             color: 'black',
             fillColor: 'blue',
             fillOpacity: 0.5,
-            radius: 1 + parseInt(p['spdms'], 10)
+            radius: 1 + parseInt(p['spdknts'], 10) * 0.51444
         }).addTo(MD.map));
     }
 
@@ -259,7 +262,8 @@ MD.generateTimeGraph = function(pdata)
             return { 
                 dt : d3.timeParse("%Y-%m-%d %H:%M:%S")(d.dt),
                 time: d.dt.split(' ')[1],
-                spdms: parseFloat(d.spdms, 10),
+                // convert knots to spd in m/s then km/h
+                spdkmh: parseFloat(d.spdknts, 10) * 0.51444 * 3.6,
                 satnum: parseInt(d.satnum, 10)
             };
         }
@@ -270,7 +274,7 @@ MD.generateTimeGraph = function(pdata)
         .domain(d3.extent(data, (d) => d.dt))
         .range([0, width]);
     const y = d3.scaleLinear()
-        .domain(d3.extent(data, (d) => d.spdms).reverse())
+        .domain(d3.extent(data, (d) => d.spdkmh).reverse())
         .range([0, height]);
 
     // delete SVG elem if it already exists
@@ -293,7 +297,7 @@ MD.generateTimeGraph = function(pdata)
         .data(data)
         .join("circle")
         .attr("cx", (d) => x(d.dt))
-        .attr("cy", (d) => y(d.spdms))
+        .attr("cy", (d) => y(d.spdkmh))
         .attr('opacity', 0.5)
         .style("fill", "steelblue")
         .attr("r", (d) => d.satnum/5);
@@ -320,7 +324,7 @@ MD.generateTimeGraph = function(pdata)
     svg.append("text")
         .attr("transform", "translate(" + -25 + " " + height + ") " + "rotate(-90)")
         .attr("text-anchor", "start") // [start, middle, end]
-        .text("Speed (m/s)");
+        .text("Speed (km/h)");
 
     // create drag box
     svg.append("rect")
@@ -466,7 +470,7 @@ MD.createMapFunctionality = function()
 {
     // See event types: https://leafletjs.com/reference.html#map-event
     // Adding event Handlers: https://leafletjs.com/examples/extending/extending-3-controls.html
-
+    
     L.RectSelect = L.Handler.extend({
         _startPoint: false,
 
@@ -605,7 +609,12 @@ MD.init = function()
     wbn.addEventListener('click', function() {
         if ( MD.data.selection.length > 0 ) {
             let bus_num = document.getElementById('select_bus_number').value;
-            MD.dbRequest({'req': 'write_bus_number', 'date': MD.focus_date, 'value': MD.retrieveDtSelection(), 'bus': bus_num}, MD.retrieveDateGroups);
+            MD.dbRequest({
+                'req': 'write_bus_number',
+                'date': MD.focus_date,
+                'value': MD.retrieveDtSelection(),
+                'bus': bus_num
+            }, MD.retrieveDateGroups);
         } else {
             console.log("No selection");
         }
@@ -615,7 +624,12 @@ MD.init = function()
     wbd.addEventListener('click', function() {
         if ( MD.data.selection.length > 0 ) {
             let bus_dir = document.getElementById('select_bus_direction').value;
-            MD.dbRequest({'req': 'write_bus_direction', 'date': MD.focus_date, 'value': MD.retrieveDtSelection(), 'direction': bus_dir}, MD.retrieveDateGroups);
+            MD.dbRequest({
+                'req': 'write_bus_direction',
+                'date': MD.focus_date,
+                'value': MD.retrieveDtSelection(),
+                'direction': bus_dir
+            }, MD.retrieveDateGroups);
         } else {
             console.log("No selection");
         }
