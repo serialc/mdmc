@@ -43,10 +43,18 @@ case "write_bus_direction":
     }
     break;
 
-case "delete_points":
+case "hide_points":
     // set visible to 0/FALSE
     if ($db->setAttribute('visible', 0, $pdata['dt_list'])) {
         echo buildResponse( $db->getDateGroups($pdata['date']) );
+    } else {
+        echo buildResponse("Unable to update bus number", 500);
+    }
+    break;
+
+case "delete_day":
+    if ($db->deleteDay($pdata['date'])) {
+        echo buildResponse( $db->getDates() );
     } else {
         echo buildResponse("Unable to update bus number", 500);
     }

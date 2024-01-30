@@ -55,7 +55,7 @@ with open(data, 'r') as fh:
             print("Skipping row with invalid date-time " + p[0] + ' ' + p[1])
             continue
 
-        query = "INSERT IGNORE INTO busmov (dt, satnum, altitude, spdms, lat, lng, batv) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        query = "INSERT IGNORE INTO busmov (dt, satnum, altitude, spdknts, lat, lng, batv) VALUES (?, ?, ?, ?, ?, ?, ?)"
         value_tuple = ( dtcet.strftime("%Y-%m-%d %H:%M:%S"), p[2], p[3], p[4], p[5], p[6], p[7])
         c.execute(query, value_tuple)
         commitcount += 1

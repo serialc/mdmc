@@ -18,7 +18,7 @@ MD.dbRequest = function(data, callbackFunc)
     // clear selection
     MD.select('none');
 
-    MD.setStatus('Loading data ' + data.req);
+    MD.setStatus('Completing request ' + data.req);
 
     fetch('/api.php', {
         method: 'POST',
@@ -69,7 +69,7 @@ MD.updateDatesList = function(list)
     selectDate.dispatchEvent(new Event('change'));
 };
 
-MD.retrieveDateGroups = function(groups)
+MD.parseDateGroups = function(groups)
 {
     // delete SVG elem if it already exists
     if ( document.getElementById("svggraph") ) { svggraph.remove(); }
@@ -98,6 +98,7 @@ MD.retrieveDateGroups = function(groups)
 MD.displayDateBusDirections = function(day_data, auto_load)
 {
     MD.deleteBusOrDirectionButtons('both');
+    MD.displayDataDescription();
 
     // get the elements holding the bus numbers and directions
     let bnum_el = document.getElementById('filter_bus_number');
@@ -106,34 +107,47 @@ MD.displayDateBusDirections = function(day_data, auto_load)
     // now display each bus number
     for (bus in day_data) {
         let busnum = bus;
-        let btn = document.createElement("button");
-        btn.classList.add('btn');
-        if (MD.bus_number === busnum) {
-            btn.classList.add('btn-info');
-        } else {
-            btn.classList.add('btn-secondary');
-        }
-        btn.classList.add('bus_number_buttons');
-        btn.appendChild( document.createTextNode(bus) );
-        btn.addEventListener('click', function(e) {
+        let btn = document.createElement("input");
+        let lbl = document.createElement("label");
 
+        btn.classList.add("btn-check");
+        btn.type = "radio";
+        btn.name = "bus_num_radio";
+        btn.id = "bus_num_" + busnum;
+        lbl.classList.add("btn", "btn-outline-primary");
+        lbl.setAttribute("for", "bus_num_" + busnum);
+        lbl.appendChild( document.createTextNode(bus) );
+
+        // determine if selected
+        //if (MD.bus_number === busnum) { btn.checked = true; }
+
+        btn.addEventListener('click', function(e) {
+            // save selection
             MD.bus_number = busnum;
+
+            // clear the direction buttons
             MD.deleteBusOrDirectionButtons('busdir');
 
             let dirs = day_data[busnum];
+
             // display the directions for this bus
             for (d in dirs) {
                 let direction = day_data[busnum][d].dir;
-                let dbtn = document.createElement("button");
-                dbtn.title = dirs[d].count;
-                dbtn.classList.add('btn');
-                if (MD.bus_direction === direction) {
-                    dbtn.classList.add('btn-info');
-                } else {
-                    dbtn.classList.add('btn-secondary');
-                }
-                dbtn.classList.add('direction_buttons');
+
+                let dbtn = document.createElement("input");
+                let dlbl = document.createElement("label");
+
+                dbtn.classList.add("btn-check");
+                dbtn.type = "radio";
+                dbtn.name = "bus_dir_radio";
+                dbtn.id = "bus_dir_" + direction;
+                dlbl.classList.add("btn", "btn-outline-primary");
+                dlbl.setAttribute("for", "bus_dir_" + direction);
+                dlbl.appendChild( document.createTextNode(MD.codes.country[direction]) );
+                dlbl.title = dirs[d].count;
+
                 dbtn.addEventListener('click', function(e) {
+                    // save selection
                     MD.bus_direction = direction;
 
                     // load the data for this date, bus, trip direction
@@ -144,51 +158,51 @@ MD.displayDateBusDirections = function(day_data, auto_load)
                         'bus_dir': direction === "none" ? null : direction
                     }, MD.displayData);
                 });
-                dbtn.appendChild( document.createTextNode(MD.codes.country[direction]) );
                 bdir_el.append(dbtn);
+                bdir_el.append(dlbl);
 
-                // there is only one direction, select it
-                if (auto_load) {
-                    if (dirs.length === 1) {
-                        dbtn.dispatchEvent(new Event('click'));
-                    }  else if (MD.bus_direction === direction) {
-                        dbtn.dispatchEvent(new Event('click'));
-                    }
+                // if only one dir 
+                if (dirs.length === 1 || MD.bus_direction === direction) {
+                    dbtn.dispatchEvent(new Event('click'));
+                    dbtn.checked = true;
                 }
             }
         });
-
         bnum_el.append(btn);
+        bnum_el.append(lbl);
 
-        // there is only one bus, select it
-        if (Object.keys(day_data).length === 1) {
+        // get the number of objects in day_data
+        // if only one bus number, select it
+        if (Object.keys(day_data).length === 1 || MD.bus_number === busnum) {
             btn.dispatchEvent(new Event('click'));
-        } else if (MD.bus_nmber === busnum) {
-            // if this bus was already selected
-            btn.dispatchEvent(new Event('click'));
+            btn.checked = true;
         }
     }
 };
 
 MD.deleteBusOrDirectionButtons = function(delete_button_class)
 {
+
     if (delete_button_class === 'busnum' || delete_button_class === 'both') {
-        // delete all the bus number buttons 
-        let del_el = document.getElementsByClassName('bus_number_buttons');
-        // del_el is a live list - delete smartly
-        while (del_el.length > 0) {
-            del_el[0].remove();
-        }
+        let bnum_el = document.getElementById('filter_bus_number');
+
+        let nbtninp = bnum_el.getElementsByTagName('input');
+        let nbtnlbl = bnum_el.getElementsByTagName('label');
+
+        // delete all the bus number buttons - a live list - delete smartly
+        while (nbtninp.length > 0) { nbtninp[0].remove(); }
+        while (nbtnlbl.length > 0) { nbtnlbl[0].remove(); }
     }
 
     if (delete_button_class === 'busdir' || delete_button_class === 'both') {
-        // delete all direction buttons in case some have been generated
-        let del_el = document.getElementsByClassName('direction_buttons');
-        // del_el is a live list - delete smartly
-        while (del_el.length > 0) {
-            del_el[0].remove();
-        }
+        let bdir_el = document.getElementById('filter_bus_direction');
 
+        let dbtninp = bdir_el.getElementsByTagName('input');
+        let dbtnlbl = bdir_el.getElementsByTagName('label');
+
+        // delete all the bus number buttons - a live list - delete smartly
+        while (dbtninp.length > 0) { dbtninp[0].remove(); }
+        while (dbtnlbl.length > 0) { dbtnlbl[0].remove(); }
     }
 
 };
@@ -201,6 +215,9 @@ MD.clearMapAndData = function()
 
     // clear points data
     MD.data.points = [];
+
+    // clear description
+    MD.displayDataDescription();
 };
 
 MD.displayData = function(points)
@@ -221,7 +238,7 @@ MD.displayData = function(points)
             color: 'black',
             fillColor: 'blue',
             fillOpacity: 0.5,
-            radius: 1 + parseInt(p['spdknts'], 10) * 0.51444
+            radius: Math.sqrt((parseInt(p['spdknts'], 10) * 0.51444)/Math.PI)
         }).addTo(MD.map));
     }
 
@@ -229,7 +246,7 @@ MD.displayData = function(points)
     MD.generateTimeGraph(points);
 
     // update the bus numbers and directions buttons
-    MD.displayDateBusDirections(MD.data.day_groups, false);
+    //MD.displayDateBusDirections(MD.data.day_groups, false);
 
     // display information about the current selection
     MD.displayDataDescription();
@@ -242,9 +259,16 @@ MD.displayData = function(points)
 MD.displayDataDescription = function()
 {
     let dd = document.getElementById("data_description");
-    dd.innerHTML = "Bus " + MD.bus_number + ' - ' + (MD.bus_direction === 1 ? 'Towards Luxembourg' : 'Leaving Luxembourg') + '<br>' +
+    let dtext;
+    if (MD.bus_number && MD.bus_direction) {
+        dtext = "Bus " + MD.bus_number + ' - Direction ' + MD.codes.country[MD.bus_direction] + '<br>' +
         MD.data.points.length + ' data points<br>' +
         MD.data.selection.length + ' points selected';
+    } else {
+        dtext = "Select a bus and direction";
+    }
+
+    dd.innerHTML = dtext;
 };
 
 MD.generateTimeGraph = function(pdata)
@@ -576,7 +600,7 @@ MD.init = function()
         localStorage.setItem('last_date', MD.focus_date);
 
         // get the data for the selected date
-        MD.dbRequest({'req': 'date_groups', 'value': sel_date.value}, MD.retrieveDateGroups);
+        MD.dbRequest({'req': 'date_groups', 'value': sel_date.value}, MD.parseDateGroups);
     });
 
     let ndate = document.getElementById('select_ndate');
@@ -614,7 +638,7 @@ MD.init = function()
                 'date': MD.focus_date,
                 'value': MD.retrieveDtSelection(),
                 'bus': bus_num
-            }, MD.retrieveDateGroups);
+            }, MD.parseDateGroups);
         } else {
             console.log("No selection");
         }
@@ -629,7 +653,7 @@ MD.init = function()
                 'date': MD.focus_date,
                 'value': MD.retrieveDtSelection(),
                 'direction': bus_dir
-            }, MD.retrieveDateGroups);
+            }, MD.parseDateGroups);
         } else {
             console.log("No selection");
         }
@@ -641,14 +665,25 @@ MD.init = function()
     document.getElementById('select_none_btn').addEventListener('click', function() {
         MD.select('none');
     });
-    document.getElementById('delete_selection_btn').addEventListener('click', function() {
-        // just delete it by making it not visible
+    document.getElementById('hide_selection_btn').addEventListener('click', function() {
+        // make it not visible
         if ( MD.data.selection.length > 0 ) {
             MD.dbRequest({
-                'req': 'delete_points',
+                'req': 'hide_points',
                 'dt_list': MD.retrieveDtSelection(),
                 'date': MD.focus_date
-            }, MD.retrieveDateGroups);
+            }, MD.parseDateGroups);
+        }
+    });
+    document.getElementById('delete_day').addEventListener('click', function() {
+        if (window.confirm("Are you sure you want to delete the whole day?")) {
+            MD.dbRequest({
+                'req': 'delete_day',
+                'date': MD.focus_date
+            }, MD.updateDatesList);
+
+            // update the localStorage to the next day as this day will no longer exist
+            localStorage.setItem('last_date', MD.data.dates_list[MD.data.dates_list.indexOf(MD.focus_date) + 1]);
         }
     });
     document.getElementById('vbtn_belval').addEventListener('click', function() {

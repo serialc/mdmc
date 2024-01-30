@@ -26,7 +26,10 @@
                 </div>
 
                 <div class="col-md-4" id="controls">
-                    <h4>Data retrieval</h4>
+                    <h4>
+                        Data retrieval
+                        <button id="delete_day" class="btn btn-danger">Delete day</button>
+                    </h4>
                     <div class="row">
                         <div class="col-12">
                             <div class="input-group">
@@ -41,7 +44,7 @@
                     </div>
                     <div class="row mt-2">
                         <div class="col-12">
-                            <div id="filter_bus_number" class="input-group">
+                            <div id="filter_bus_number" role="group" class="input-group">
                                 <div class="input-group-prepend">
                                     <span class="input-group-text" for="select_date">Bus</span>
                                 </div>
@@ -63,7 +66,7 @@
                         <div class="col-12">
                             <button id="select_all_btn" class="btn btn-primary">Select all</button>
                             <button id="select_none_btn" class="btn btn-primary">Clear</button>
-                            <button id="delete_selection_btn" class="btn btn-danger">Delete</button>
+                            <button id="hide_selection_btn" class="btn btn-warning">Hide</button>
 
                         </div>
                     </div>
@@ -123,8 +126,6 @@
                 <div class="col-md-6 mt-3">
                     <h4>To do:</h4>
                     <ul>
-                        <li>Auto classify segments</li>
-                        <li>Make map select display on graph</li>
                     </ul>
                 </div>
                 <div class="col-md-6 mt-3">

@@ -112,6 +112,9 @@ class DataBaseConnection
 
     public function setAttribute($field_name, $field_value, $dt)
     {
+        // devide the processing into sets
+        $setnum = count($dt)/5000;
+
         $sql = "UPDATE " . TABLE_MOVE_DATA . " SET " . $field_name . "=? WHERE ";
 
         $lastindex = count($dt) - 1;
@@ -129,6 +132,13 @@ class DataBaseConnection
         array_unshift($dt, $field_value);
 
         return $stmt->execute($dt);
+    }
+
+    public function deleteDay($datadate)
+    {
+        $sql = "DELETE FROM " . TABLE_MOVE_DATA . " WHERE DATE(dt)=?";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$datadate]);
     }
 }
 
