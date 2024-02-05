@@ -238,7 +238,9 @@ MD.displayData = function(points)
             color: 'black',
             fillColor: 'blue',
             fillOpacity: 0.5,
-            radius: Math.sqrt((parseInt(p['spdknts'], 10) * 0.51444)/Math.PI)
+            // 0.51444 is conversion from knots to m/s
+            // 40 is a symbol size multiplier
+            radius: Math.sqrt((parseInt(p['spdknts'], 10) * 0.51444 * 40)/Math.PI)
         }).addTo(MD.map));
     }
 
@@ -324,7 +326,7 @@ MD.generateTimeGraph = function(pdata)
         .attr("cy", (d) => y(d.spdkmh))
         .attr('opacity', 0.5)
         .style("fill", "steelblue")
-        .attr("r", (d) => d.satnum/5);
+        .attr("r", (d) => d.satnum/4 + 1);
 
     // add the x axis line
     let xAxis = d3.axisBottom(x)
@@ -428,11 +430,13 @@ MD.select = function(instruction)
     // clear selection
     if (instruction === 'none') {
         MD.data.selection = [];
+        // hide the rectangle in the graph - if it exists
+        let sb = document.getElementById('selbox');
+        if (sb) { sb.style.display = 'none'; }
     }
 
     // update map
     MD.resetMapSelection();
-
 };
 
 MD.graphSelect = function(sdt, edt)
@@ -674,6 +678,15 @@ MD.init = function()
                 'date': MD.focus_date
             }, MD.parseDateGroups);
         }
+    });
+    document.getElementById('reset_selection_btn').addEventListener('click', function() {
+        // make ll points for the day visible, bus, and direction visible again
+        MD.dbRequest({
+            'req': 'reset_set_points',
+            'date': MD.focus_date,
+            'busnum': MD.bus_number,
+            'busdir': MD.bus_direction
+        }, MD.parseDateGroups);
     });
     document.getElementById('delete_day').addEventListener('click', function() {
         if (window.confirm("Are you sure you want to delete the whole day?")) {

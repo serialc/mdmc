@@ -17,124 +17,126 @@
         <script src="js/d3.v7.min.js"></script>
 
     </head>
-    <body>
-        <div class="container-fluid">
-            <div class="row">
+        <body>
+            <div class="container-fluid">
+                <div class="row">
 
-                <div class="col-md-8">
-                    <div id="map"></div>
+                    <div class="col-md-8">
+                        <div id="map"></div>
+                    </div>
+
+                    <div class="col-md-4" id="controls">
+                        <h4>
+                            Data retrieval
+                            <button id="delete_day" class="btn btn-danger">Delete day</button>
+                        </h4>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">Date</span>
+                                    </div>
+                                    <select id="select_date" class="form-select" name="select_date"></select>
+                                    <button class="btn btn-primary" id="select_pdate">Prev</button>
+                                    <button class="btn btn-primary" id="select_ndate">Next</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <div id="filter_bus_number" role="group" class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" for="select_date">Bus</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12 mt-2">
+                                <div id="filter_bus_direction" class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" for="select_date">Direction</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h4 class="mt-3">Selection</h4>
+                                <button id="select_all_btn" class="btn btn-primary mb-1">Select all</button>
+                                <button id="select_none_btn" class="btn btn-primary mb-1">Clear</button>
+                            </div>
+                            <div class="col-md-8">
+                                <h4 class="mt-3">Edit attributes</h4>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">Bus number</span>
+                                            </div>
+                                            <select id="select_bus_number" class="form-select">
+                                                <option value="306">306 Belval - Trier/Nordallee</option>
+                                                <option value="304">304 LuxExpo - Mesenich/P+R/DE border</option>
+                                                <option value="303">303 LuxExpo - Trier/Basilica</option>
+                                                <option value="302">302 Howald - Trier/Nordallee</option>
+                                            </select>
+                                            <button class="btn btn-warning" id="submit_bus_number">Update</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 mt-1">
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">Bus direction</span>
+                                            </div>
+                                            <select id="select_bus_direction" class="form-select">
+                                                <option value="1">Luxembourg</option>
+                                                <option value="2">Germany</option>
+                                            </select>
+                                            <button class="btn btn-warning" id="submit_bus_direction">Update</button>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 mt-1">
+                                        <button id="hide_selection_btn" class="btn btn-warning mb-1">Hide</button>
+                                        <button id="reset_selection_btn" class="btn btn-warning mb-1">Reset bus-dir visibility</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <h4 class="mt-3">Data description</h4>
+                                <div id="data_description">
+                                    Describe currently selected data
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h4 class="mt-3">Views</h4>
+                                <button class="btn btn-success mb-1" id="vbtn_data">Data</button>
+                                <button class="btn btn-success mb-1" id="vbtn_selection">Selection</button>
+                                <button class="btn btn-success mb-1" id="vbtn_trier">Trier</button>
+                                <button class="btn btn-success mb-1" id="vbtn_belval">Belval</button>
+                            </div>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <div class="alert alert-secondary mt-2" id="status">none</div>
+                        </div>
+                    </div>
+
+                    <div id="graphbox" class="col-12 mt-3"></div>
+
+                    <div class="col-md-6 mt-3">
+                        <h4>To do:</h4>
+                        <ul>
+                        </ul>
+                    </div>
                 </div>
 
-                <div class="col-md-4" id="controls">
-                    <h4>
-                        Data retrieval
-                        <button id="delete_day" class="btn btn-danger">Delete day</button>
-                    </h4>
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">Date</span>
-                                </div>
-                                <select id="select_date" class="form-select" name="select_date"></select>
-                                <button class="btn btn-primary" id="select_pdate">Prev</button>
-                                <button class="btn btn-primary" id="select_ndate">Next</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-12">
-                            <div id="filter_bus_number" role="group" class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text" for="select_date">Bus</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12 mt-2">
-                            <div id="filter_bus_direction" class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text" for="select_date">Direction</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h4 class="mt-3">Selection</h4>
-                    <div class="row">
-                        <div class="col-12">
-                            <button id="select_all_btn" class="btn btn-primary">Select all</button>
-                            <button id="select_none_btn" class="btn btn-primary">Clear</button>
-                            <button id="hide_selection_btn" class="btn btn-warning">Hide</button>
-
-                        </div>
-                    </div>
-
-                    <h4 class="mt-3">Edit selected data</h4>
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">Bus number</span>
-                                </div>
-                                <select id="select_bus_number" class="form-select">
-                                    <option value="306">306 Belval - Trier</option>
-                                    <option value="303">303 LuxExpo - Trier</option>
-                                    <option value="302">302 Howald - Trier</option>
-                                </select>
-                                <button class="btn btn-warning" id="submit_bus_number">Update</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mt-2">
-                        <div class="col-12">
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">Bus direction</span>
-                                </div>
-                                <select id="select_bus_direction" class="form-select">
-                                    <option value="1">Luxembourg</option>
-                                    <option value="2">Germany</option>
-                                </select>
-                                <button class="btn btn-warning" id="submit_bus_direction">Update</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mt-2">
-                        <div class="col-md-6">
-                            <h4 class="mt-3">Data description</h4>
-                            <div id="data_description">
-                                Describe currently selected data
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <h4 class="mt-3">Views</h4>
-                            <button class="btn btn-success mb-1" id="vbtn_data">Data</button>
-                            <button class="btn btn-success mb-1" id="vbtn_selection">Selection</button>
-                            <button class="btn btn-success mb-1" id="vbtn_belval">Belval</button>
-                            <button class="btn btn-success mb-1" id="vbtn_trier">Trier</button>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div id="graphbox" class="col-12 mt-3"></div>
-
-                <div class="col-md-6 mt-3">
-                    <h4>To do:</h4>
-                    <ul>
-                    </ul>
-                </div>
-                <div class="col-md-6 mt-3">
-                    <div class="alert alert-secondary mt-2" id="status">none</div>
-                </div>
             </div>
-
-        </div>
-    </body>
-    <script src="js/mdmc.js"></script>
+        </body>
+        <script src="js/mdmc.js"></script>
 </html>
 

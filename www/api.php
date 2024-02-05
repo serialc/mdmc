@@ -52,6 +52,15 @@ case "hide_points":
     }
     break;
 
+case "reset_set_points":
+    // set points with specific date, bus num, dir, and visible=0 as visible=1
+    if ($db->resetVisibility($pdata['date'], $pdata['busnum'], $pdata['busdir'])) {
+        echo buildResponse( $db->getDateGroups($pdata['date']) );
+    } else {
+        echo buildResponse("Unable to update bus number", 500);
+    }
+    break;
+
 case "delete_day":
     if ($db->deleteDay($pdata['date'])) {
         echo buildResponse( $db->getDates() );

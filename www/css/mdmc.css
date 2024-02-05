@@ -1,7 +1,7 @@
 
 html, body {
     height: 100%;
-    margin-top: 20px;
+    margin-top: 10px;
 }
 
 #map {
@@ -10,5 +10,5 @@ html, body {
 }
 
 #graphbox {
-    height: 25vh;
+    height: 35vh;
 }

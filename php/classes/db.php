@@ -110,6 +110,14 @@ class DataBaseConnection
         return $groups;
     }
 
+    public function resetVisibility($date, $bnum, $bdir)
+    {
+        $sql = "UPDATE " . TABLE_MOVE_DATA . " SET visible=1 WHERE " .
+            "DATE(dt) = ? AND busnum = ? AND tripcode = ? AND visible = 0";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$date, $bnum, $bdir]);
+    }
+
     public function setAttribute($field_name, $field_value, $dt)
     {
         // devide the processing into sets
