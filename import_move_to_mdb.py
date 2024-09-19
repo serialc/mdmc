@@ -28,12 +28,14 @@ except mariadb.Error as e:
 c = conn.cursor()
 comminterval = 10000
 commitcount = 0
-tenthousands = 0
+totalrows = 0
 
 tzUTC = pytz.timezone("UTC")
 tzCET = pytz.timezone("CET")
 
 with open(data, 'r') as fh:
+    print("Opened file successfully")
+
     header = True
 
     for l in fh:
@@ -62,9 +64,15 @@ with open(data, 'r') as fh:
 
         if commitcount > comminterval:
             conn.commit()
+            totalrows += commitcount
             commitcount = 0
-            tenthousands += 1
-            print("Processed " + str(tenthousands) + "0,000 rows")
+            print("Processed " + str(totalrows) + " rows")
+
+if commitcount > 0:
+    conn.commit()
+    totalrows += commitcount
+    commitcount = 0
+    print("Processed " + str(totalrows) + " rows")
 
 c.close()
 conn.close()
