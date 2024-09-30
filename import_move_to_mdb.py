@@ -3,7 +3,10 @@ import sys
 import datetime
 import pytz
 
-data = "/home/cyrille/Dropbox/Research/lux_free_transport_analysis/arduino/data/commute.csv"
+#data = "/home/cyrille/Dropbox/Research/lux_free_transport_analysis/arduino/data/commute.csv"
+#data = "/home/cyrille/Dropbox/Research/lux_free_transport_analysis/arduino/data/raw_commute_files/2024-03-14_COMMUTE.TXT"
+#data = "/home/cyrille/Dropbox/Research/lux_free_transport_analysis/arduino/data/raw_commute_files/2024_09_18_COMMUTE.TXT"
+exit("Specify file!")
 
 mdbu = "cyrille"
 mdbp = ""
